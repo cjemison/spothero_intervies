@@ -1,0 +1,47 @@
+plugins {
+    id 'org.springframework.boot' version '2.1.8.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+    id 'java'
+    id 'jacoco'
+}
+
+group = 'com.cjemison'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "http://repo.spring.io/libs-release" }
+    maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/' }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+    implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.3'
+    implementation group: 'org.apache.commons', name: 'commons-io', version: '1.3.2'
+    implementation group: 'com.google.guava', name: 'guava', version: '27.1-jre'
+    implementation group: 'joda-time', name: 'joda-time', version: '2.10.4'
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    implementation "io.micrometer:micrometer-registry-prometheus:1.2.0"
+
+    implementation 'io.springfox:springfox-swagger2:3.0.0-SNAPSHOT'
+    implementation 'io.springfox:springfox-swagger-ui:3.0.0-SNAPSHOT'
+    implementation 'io.springfox:springfox-spring-webflux:3.0.0-SNAPSHOT'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+}
+
+bootJar {
+    archiveName = "app.jar"
+    from sourceSets.main.allSource
+}
+
+clean {
+    delete "build"
+    delete "out"
+}
