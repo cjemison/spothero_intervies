@@ -14,14 +14,9 @@ services:
     ports:
       - 9380:9090
     restart: unless-stopped
-  spring-admin:
-    build: ./spring-admin/
-    ports:
-      - 9280:8080
   spothero:
     build: ./
     depends_on:
-      - spring-admin
       - prometheus
       - grafana
     ports:
