@@ -48,9 +48,11 @@ public class DefaultQueryControllerImpl implements IQueryController {
   public Mono<ResponseEntity<?>> query(@RequestBody final RequestDO requestDO) {
     LOGGER.debug("query - requestDO: {}", requestDO);
     return Mono.subscriberContext()
+        .name("com.cjemison.spothero.controller.impl.timer.query")
         .subscribeOn(Schedulers.fromExecutor(executor))
         .subscriberContext(Context.of("requestDO", requestDO))
         .flatMap(rateService::query)
-        .flatMap(responseDO -> Mono.<ResponseEntity<?>>just(ResponseEntity.ok(requestDO)));
+        .flatMap(responseDO -> Mono.<ResponseEntity<?>>just(ResponseEntity.ok(requestDO)))
+        .metrics();
   }
 }

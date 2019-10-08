@@ -51,13 +51,15 @@ public class DefaultRateControllerImpl implements IRateController {
   public Mono<ResponseEntity<?>> findAll() {
     LOGGER.debug("findAll()");
     return rateService.findAll()
+        .name("com.cjemison.spothero.controller.impl.timer.findall")
         .subscribeOn(Schedulers.fromExecutor(executor))
         .onErrorResume(throwable -> Mono.just(RateDO.builder()
             .error(throwable.getMessage())
             .build()))
         .collectList()
         .flatMap(list -> Mono.<ResponseEntity<?>>just(
-            ResponseEntity.ok(RatesDO.builder().rates(list).build())));
+            ResponseEntity.ok(RatesDO.builder().rates(list).build())))
+        .metrics();
   }
 
   @Override
@@ -68,6 +70,7 @@ public class DefaultRateControllerImpl implements IRateController {
   public Mono<ResponseEntity<?>> findOne(@PathVariable("id") final String id) {
     LOGGER.debug("findOne - id: {}", id);
     return Mono.subscriberContext()
+        .name("com.cjemison.spothero.controller.impl.timer.findone")
         .subscriberContext(Context.of("id", id))
         .flatMap(rateService::findOne)
         .onErrorResume(throwable -> Mono.just(RateDO.builder()
@@ -79,7 +82,7 @@ public class DefaultRateControllerImpl implements IRateController {
             return Mono.<ResponseEntity<?>>just(ResponseEntity.notFound().build());
           }
           return Mono.<ResponseEntity<?>>just(ResponseEntity.ok(rateDO));
-        });
+        }).metrics();
   }
 
   @Override
@@ -93,6 +96,7 @@ public class DefaultRateControllerImpl implements IRateController {
 
     LOGGER.debug("create - rateDO: {}", ratesDO);
     return Flux.just(Context.of("ratesDO", ratesDO))
+        .name("com.cjemison.spothero.controller.impl.timer.create")
         .flatMap(rateService::create)
         .onErrorResume(throwable -> Mono.just(RateDO.builder()
             .error(throwable.getMessage())
@@ -108,7 +112,7 @@ public class DefaultRateControllerImpl implements IRateController {
             return Mono.<ResponseEntity<?>>just(ResponseEntity.badRequest().body(r));
           }
           return Mono.<ResponseEntity<?>>just(ResponseEntity.accepted().body(r));
-        });
+        }).metrics();
   }
 
   @Override
@@ -127,6 +131,7 @@ public class DefaultRateControllerImpl implements IRateController {
     map.put("rateDO", rateDO);
 
     return Flux.just(Context.of(map))
+        .name("com.cjemison.spothero.controller.impl.timer.update")
         .flatMap(rateService::update)
         .onErrorResume(throwable -> Mono.just(RateDO.builder()
             .error(throwable.getMessage())
@@ -136,12 +141,11 @@ public class DefaultRateControllerImpl implements IRateController {
           final long cnt = list.stream().filter(rate -> StringUtils.isNotBlank(rate.getError()))
               .count();
           final RatesDO r = RatesDO.builder().rates(list).build();
-
           if (cnt > 0) {
             return Mono.<ResponseEntity<?>>just(ResponseEntity.badRequest().body(r));
           }
           return Mono.<ResponseEntity<?>>just(ResponseEntity.accepted().body(r));
-        });
+        }).metrics();
   }
 
   @Override
@@ -152,14 +156,15 @@ public class DefaultRateControllerImpl implements IRateController {
   public Mono<ResponseEntity<?>> delete(@PathVariable("id") final String id) {
     LOGGER.debug("delete - id: {}", id);
     return Mono.subscriberContext()
+        .name("com.cjemison.spothero.controller.impl.timer.delete")
         .subscriberContext(Context.of("id", id))
         .flatMap(rateService::delete)
         .flatMap(aBoolean -> {
           Mono<ResponseEntity<?>> mono = Mono.just(ResponseEntity.accepted().build());
-          if (aBoolean) {
-            mono = Mono.just(ResponseEntity.ok().body(""));
+          if (!aBoolean) {
+            mono = Mono.just(ResponseEntity.notFound().build());
           }
           return mono;
-        });
+        }).metrics();
   }
 }

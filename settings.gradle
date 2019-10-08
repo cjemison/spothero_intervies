@@ -4,3 +4,5 @@ pluginManagement {
     }
 }
 rootProject.name = 'spot_hero_interview'
+
+include 'spring-admin'
