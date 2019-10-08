@@ -79,6 +79,7 @@ public class DefaultRateServiceImpl implements IRateService {
 
                 final var dateTimeZone = DateTimeZone.forID(rateEO.getTimeZone());
 
+                // convert to timezone or rate. cst date maybe different that ist.
                 final var currentTimeZoneDate = start.withZone(dateTimeZone);
 
                 final var startDateTime = new DateTime(currentTimeZoneDate.getYear(),
@@ -88,6 +89,7 @@ public class DefaultRateServiceImpl implements IRateService {
                     startTime.getMinuteOfHour(),
                     DateTimeZone.forID(rateEO.getTimeZone()));
 
+                // add 500ms to ensure end date is between intervals.
                 final var endDateTime = new DateTime(currentTimeZoneDate.getYear(),
                     currentTimeZoneDate.getMonthOfYear(),
                     currentTimeZoneDate.getDayOfMonth(),
