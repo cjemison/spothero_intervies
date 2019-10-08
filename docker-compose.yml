@@ -1,19 +1,6 @@
 version: "3.5"
 
 services:
-  grafana:
-    image: grafana/grafana
-    ports:
-      - 3000:3000
-  prometheus:
-    image: prom/prometheus
-    #volumes:
-    #  - /prometheus:/tmp/prometheus/
-    command:
-      - '--config.file=/tmp/prometheus/prometheus.yml'
-    ports:
-      - 9380:9090
-    restart: unless-stopped
   spring-admin:
     build: ./spring-admin/
     ports:
