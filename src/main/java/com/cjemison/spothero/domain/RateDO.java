@@ -12,24 +12,27 @@ import org.apache.commons.lang3.StringUtils;
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize(builder = RateDO.Builder.class)
-public class RateDO {
+public class RateDO implements IResponse {
 
   private final String id;
   private final String days;
   private final String times;
   private final String timeZone;
   private final String price;
+  private final String error;
 
   protected RateDO(final String id,
       final String days,
       final String times,
       final String timeZone,
-      final String price) {
+      final String price,
+      final String error) {
     this.id = id;
     this.days = days;
     this.times = times;
     this.timeZone = timeZone;
     this.price = price;
+    this.error = error;
   }
 
   public static RateDO.Builder builder() {
@@ -61,6 +64,11 @@ public class RateDO {
     return price;
   }
 
+  @JsonProperty("error")
+  public String getError() {
+    return error;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -89,7 +97,8 @@ public class RateDO {
         ", days='" + days + '\'' +
         ", times='" + times + '\'' +
         ", timeZone='" + timeZone + '\'' +
-        ", price=" + price +
+        ", price='" + price + '\'' +
+        ", error='" + error + '\'' +
         '}';
   }
 
@@ -102,6 +111,7 @@ public class RateDO {
     private String times;
     private String timeZone;
     private String price;
+    private String error;
 
     public Builder() {
       this.id = StringUtils.EMPTY;
@@ -109,6 +119,7 @@ public class RateDO {
       this.times = StringUtils.EMPTY;
       this.timeZone = StringUtils.EMPTY;
       this.price = StringUtils.EMPTY;
+      this.error = null;
     }
 
     @JsonProperty("id")
@@ -141,12 +152,19 @@ public class RateDO {
       return this;
     }
 
+    @JsonProperty("error")
+    public Builder error(final String value) {
+      this.error = defaultValue(value);
+      return this;
+    }
+
     public RateDO build() {
       return new RateDO(id,
           days,
           times,
           timeZone,
-          price);
+          price,
+          error);
     }
 
     private String defaultValue(final String value) {

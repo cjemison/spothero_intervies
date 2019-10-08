@@ -14,7 +14,7 @@ import org.apache.commons.collections4.CollectionUtils;
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonDeserialize(builder = RatesDO.Builder.class)
-public class RatesDO {
+public class RatesDO implements IResponse {
 
   private final List<RateDO> rates;
 

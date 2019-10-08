@@ -3,9 +3,14 @@ package com.cjemison.spothero.controller.impl;
 import com.cjemison.spothero.controller.IRateController;
 import com.cjemison.spothero.domain.RateDO;
 import com.cjemison.spothero.domain.RatesDO;
-import com.cjemison.spothero.domain.RequestDO;
 import com.cjemison.spothero.service.IRateService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executor;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +29,7 @@ import reactor.util.context.Context;
 
 @RestController
 @RequestMapping(value = "/v1", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+@Api("Endpoints for finding, creating, updating, and deleting rates")
 public class DefaultRateControllerImpl implements IRateController {
 
   private final static Logger LOGGER = LoggerFactory.getLogger(DefaultRateControllerImpl.class);
@@ -39,50 +45,110 @@ public class DefaultRateControllerImpl implements IRateController {
 
   @Override
   @RequestMapping(value = "/rate", method = RequestMethod.GET)
-  public Flux<ResponseEntity<?>> findAll() {
+  @ApiOperation("An endpoint for finding all rates.")
+  @ApiResponse(code = 200, message = "An endpoint for querying rates.",
+      response = RatesDO.class)
+  public Mono<ResponseEntity<?>> findAll() {
     LOGGER.debug("findAll()");
     return rateService.findAll()
         .subscribeOn(Schedulers.fromExecutor(executor))
-        .flatMap(rateDO -> Mono.<ResponseEntity<?>>just(ResponseEntity.ok(rateDO)));
+        .onErrorResume(throwable -> Mono.just(RateDO.builder()
+            .error(throwable.getMessage())
+            .build()))
+        .collectList()
+        .flatMap(list -> Mono.<ResponseEntity<?>>just(
+            ResponseEntity.ok(RatesDO.builder().rates(list).build())));
   }
 
   @Override
   @RequestMapping(value = "/rate/{id}", method = RequestMethod.GET)
+  @ApiOperation("An endpoint for finding rates by id.")
+  @ApiResponse(code = 200, message = "An endpoint for finding rates by id.",
+      response = RateDO.class)
   public Mono<ResponseEntity<?>> findOne(@PathVariable("id") final String id) {
     LOGGER.debug("findOne - id: {}", id);
     return Mono.subscriberContext()
         .subscriberContext(Context.of("id", id))
         .flatMap(rateService::findOne)
-        .flatMap(rateDO1 -> Mono.<ResponseEntity<?>>just(ResponseEntity.ok(rateDO1)));
+        .onErrorResume(throwable -> Mono.just(RateDO.builder()
+            .error(throwable.getMessage())
+            .build()))
+        .defaultIfEmpty(RateDO.builder().error("not found").build())
+        .flatMap(rateDO -> {
+          if (StringUtils.isNotBlank(rateDO.getError())) {
+            return Mono.<ResponseEntity<?>>just(ResponseEntity.notFound().build());
+          }
+          return Mono.<ResponseEntity<?>>just(ResponseEntity.ok(rateDO));
+        });
   }
 
   @Override
   @RequestMapping(value = "/rate",
       method = RequestMethod.POST,
       consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-  public Flux<ResponseEntity<?>> create(@RequestBody final RatesDO ratesDO) {
+  @ApiOperation("An endpoint for creating rates.")
+  @ApiResponse(code = 200, message = "An endpoint for creating rates.",
+      response = RateDO.class)
+  public Mono<ResponseEntity<?>> create(@RequestBody final RatesDO ratesDO) {
+
     LOGGER.debug("create - rateDO: {}", ratesDO);
     return Flux.just(Context.of("ratesDO", ratesDO))
         .flatMap(rateService::create)
-        .flatMap(rateDO1 -> Mono.<ResponseEntity<?>>just(ResponseEntity.accepted().body(rateDO1)));
+        .onErrorResume(throwable -> Mono.just(RateDO.builder()
+            .error(throwable.getMessage())
+            .build()))
+        .collectList()
+        .flatMap(list -> {
+          final long cnt = list.stream().filter(r -> StringUtils.isNotBlank(r.getError()))
+              .count();
+
+          final RatesDO r = RatesDO.builder().rates(list).build();
+
+          if (cnt > 0) {
+            return Mono.<ResponseEntity<?>>just(ResponseEntity.badRequest().body(r));
+          }
+          return Mono.<ResponseEntity<?>>just(ResponseEntity.accepted().body(r));
+        });
   }
 
   @Override
   @RequestMapping(value = "/rate/{id}",
       method = RequestMethod.PUT,
       consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-  public Flux<ResponseEntity<?>> update(@PathVariable("id") final String id,
+  @ApiOperation("An endpoint for updating rates by id.")
+  @ApiResponse(code = 200, message = "An endpoint for updating rates by id.",
+      response = RateDO.class)
+  public Mono<ResponseEntity<?>> update(@PathVariable("id") final String id,
       @RequestBody final RateDO rateDO) {
     LOGGER.debug("update - id: {} rateDO: {}", id, rateDO);
-    return Flux.just(Context.of("rateDO", rateDO))
-        .subscriberContext(Context.of("id", id))
-        .subscriberContext(Context.of("rateDO", rateDO))
+
+    final Map<String, Object> map = new HashMap<>();
+    map.put("id", id);
+    map.put("rateDO", rateDO);
+
+    return Flux.just(Context.of(map))
         .flatMap(rateService::update)
-        .flatMap(rateDO1 -> Mono.<ResponseEntity<?>>just(ResponseEntity.accepted().body(rateDO1)));
+        .onErrorResume(throwable -> Mono.just(RateDO.builder()
+            .error(throwable.getMessage())
+            .build()))
+        .collectList()
+        .flatMap(list -> {
+          final long cnt = list.stream().filter(rate -> StringUtils.isNotBlank(rate.getError()))
+              .count();
+          final RatesDO r = RatesDO.builder().rates(list).build();
+
+          if (cnt > 0) {
+            return Mono.<ResponseEntity<?>>just(ResponseEntity.badRequest().body(r));
+          }
+          return Mono.<ResponseEntity<?>>just(ResponseEntity.accepted().body(r));
+        });
   }
 
   @Override
   @RequestMapping(value = "/rate/{id}", method = RequestMethod.DELETE)
+  @ApiOperation("An endpoint for deleting rates by id.")
+  @ApiResponse(code = 200, message = "An endpoint for deleting rates by id.",
+      response = RateDO.class)
   public Mono<ResponseEntity<?>> delete(@PathVariable("id") final String id) {
     LOGGER.debug("delete - id: {}", id);
     return Mono.subscriberContext()
@@ -95,17 +161,5 @@ public class DefaultRateControllerImpl implements IRateController {
           }
           return mono;
         });
-  }
-
-  @Override
-  @RequestMapping(value = "/query",
-      method = RequestMethod.POST,
-      consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-  public Mono<ResponseEntity<?>> query(@RequestBody final RequestDO requestDO) {
-    LOGGER.debug("query - requestDO: {}", requestDO);
-    return Mono.subscriberContext()
-        .subscriberContext(Context.of("requestDO", requestDO))
-        .flatMap(rateService::query)
-        .flatMap(responseDO -> Mono.<ResponseEntity<?>>just(ResponseEntity.ok(requestDO)));
   }
 }
